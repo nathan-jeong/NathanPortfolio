@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hex Code Guessing Game</title>
+    <title>What the Hex?</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
@@ -35,13 +35,13 @@
 <body class="bg-gray-100 flex flex-col min-h-screen items-center py-12 px-4 sm:px-6 lg:px-8">
 
     <!-- Back to Home Button -->
-    <a href="index.html" class="link-button px-6 py-2 mb-8 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+    <a href=project1.html class="link-button px-6 py-2 mb-8 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
         ← Back to Portfolio
     </a>
 
-    <div class="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden p-8 space-y-6 text-center">
+    <div class="max-w-3xl w-full bg-white rounded-xl shadow-2xl overflow-hidden p-8 space-y-6 text-center">
         <h1 class="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">
-            Hex Code Guessing Game
+            What the Hex?
         </h1>
         <p class="text-gray-600">
             Guess which color matches the hex code below.
@@ -51,8 +51,8 @@
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
             <select id="difficulty-selector" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="4">Easy (4 options)</option>
-                <option value="6">Medium (6 options)</option>
-                <option value="8">Hard (8 options)</option>
+                <option value="8">Medium (8 options)</option>
+                <option value="16">Hard (16 options)</option>
             </select>
             <button id="restart-button" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">
                 Restart Game
@@ -65,12 +65,11 @@
         </div>
 
         <!-- Options Container -->
-        <div id="options-container" class="grid grid-cols-2 sm:grid-cols-2 gap-4 justify-items-center"></div>
+        <div id="options-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center"></div>
 
         <!-- Result Message -->
         <div id="result-message" class="mt-4 text-xl font-semibold"></div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const hexCodeDisplay = document.getElementById('hex-code-display');
@@ -141,9 +140,6 @@
                     return;
                 }
                 
-                // Add fade-out class to the clicked button
-                event.target.classList.add('fade-out');
-
                 if (guess === correctAnswer) {
                     isGameActive = false;
                     resultMessage.textContent = 'Correct!';
@@ -151,16 +147,19 @@
                     document.body.style.backgroundColor = correctAnswer;
                     
                     const allOptions = optionsContainer.children;
+                    const correctButton = event.target;
+
+                    // Fade out incorrect options
                     for (const option of allOptions) {
-                        // Check if the option is not the correct one
-                        if (option.dataset.hex !== correctAnswer) {
+                        if (option !== correctButton) {
                             option.classList.add('fade-out');
                         }
                     }
                 } else {
-                    resultMessage.textContent = `Incorrect. The hex code for that color is: ${guess}`;
+                    resultMessage.innerHTML = `Incorrect. The hex code for that color is: <span style="color: ${guess}">${guess}</span>`;
                     resultMessage.className = 'mt-4 text-xl font-semibold text-red-600';
-                    // The button will already have the fade-out class from above
+                    // Fade out the incorrect button
+                    event.target.classList.add('fade-out');
                 }
             }
 
