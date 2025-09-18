@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Code Guessing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            transition: background-color 0.5s ease;
+        }
+        .link-button {
+            display: block;
+            padding: 1rem;
+            background: #007BFF;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .link-button:hover {
+            background: #0056b3;
+        }
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen items-center py-12 px-4 sm:px-6 lg:px-8">
+
+    <!-- Back to Home Button -->
+    <a href="index.html" class="link-button px-6 py-2 mb-8 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+        ← Back to Portfolio
+    </a>
+
+    <div class="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden p-8 space-y-6 text-center">
+        <h1 class="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">
+            Hex Code Guessing Game
+        </h1>
+        <p class="text-gray-600">
+            Guess which color matches the hex code below.
+        </p>
+
+        <!-- Difficulty and Restart Controls -->
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <select id="difficulty-selector" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="4">Easy (4 options)</option>
+                <option value="6">Medium (6 options)</option>
+                <option value="8">Hard (8 options)</option>
+            </select>
+            <button id="restart-button" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">
+                Restart Game
+            </button>
+        </div>
+
+        <!-- Hex Code Display -->
+        <div class="bg-gray-200 p-6 rounded-lg font-mono text-3xl font-bold text-gray-800 tracking-wider">
+            <span id="hex-code-display"></span>
+        </div>
+
+        <!-- Options Container -->
+        <div id="options-container" class="grid grid-cols-2 sm:grid-cols-2 gap-4 justify-items-center"></div>
+
+        <!-- Result Message -->
+        <div id="result-message" class="mt-4 text-xl font-semibold"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const hexCodeDisplay = document.getElementById('hex-code-display');
+            const optionsContainer = document.getElementById('options-container');
+            const resultMessage = document.getElementById('result-message');
+            const difficultySelector = document.getElementById('difficulty-selector');
+            const restartButton = document.getElementById('restart-button');
+
+            let correctAnswer = '';
+            let isGameActive = false;
+
+            // Generate a random hex color code
+            function generateRandomHex() {
+                const hexCharacters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += hexCharacters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            // Shuffle an array
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Start a new game
+            function newGame() {
+                isGameActive = true;
+                optionsContainer.innerHTML = '';
+                resultMessage.textContent = '';
+                document.body.style.backgroundColor = '#f3f4f6';
+                
+                const numOptions = parseInt(difficultySelector.value);
+
+                correctAnswer = generateRandomHex();
+                hexCodeDisplay.textContent = correctAnswer;
+
+                let options = [correctAnswer];
+                for (let i = 1; i < numOptions; i++) {
+                    let newOption = generateRandomHex();
+                    while (options.includes(newOption)) {
+                        newOption = generateRandomHex();
+                    }
+                    options.push(newOption);
+                }
+
+                options = shuffleArray(options);
+
+                options.forEach(option => {
+                    const button = document.createElement('div');
+                    button.style.backgroundColor = option;
+                    button.dataset.hex = option;
+                    // Use w-24 h-24 and rounded-full for a circular shape
+                    button.className = "w-24 h-24 rounded-full border-2 border-gray-300 transform transition-all duration-300 ease-in-out cursor-pointer hover:scale-105";
+                    button.addEventListener('click', (event) => handleGuess(event, option));
+                    optionsContainer.appendChild(button);
+                });
+            }
+
+            // Handle the user's guess
+            function handleGuess(event, guess) {
+                if (!isGameActive) {
+                    return;
+                }
+                
+                // Add fade-out class to the clicked button
+                event.target.classList.add('fade-out');
+
+                if (guess === correctAnswer) {
+                    isGameActive = false;
+                    resultMessage.textContent = 'Correct!';
+                    resultMessage.className = 'mt-4 text-xl font-semibold text-green-600';
+                    document.body.style.backgroundColor = correctAnswer;
+                    
+                    const allOptions = optionsContainer.children;
+                    for (const option of allOptions) {
+                        // Check if the option is not the correct one
+                        if (option.dataset.hex !== correctAnswer) {
+                            option.classList.add('fade-out');
+                        }
+                    }
+                } else {
+                    resultMessage.textContent = `Incorrect. The hex code for that color is: ${guess}`;
+                    resultMessage.className = 'mt-4 text-xl font-semibold text-red-600';
+                    // The button will already have the fade-out class from above
+                }
+            }
+
+            // Event listeners
+            difficultySelector.addEventListener('change', newGame);
+            restartButton.addEventListener('click', newGame);
+
+            // Initial game start
+            newGame();
+        });
+    </script>
+</body>
+</html>
