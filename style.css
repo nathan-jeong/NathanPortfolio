@@ -1,0 +1,68 @@
+
+
+/* General body and typography */
+body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    text-align: center;
+    padding: 50px 20px;
+    background-color: #007bff;
+    color: white;
+}
+
+h1, h2 {
+    color: #ffaa00;
+}
+
+/* About Me section */
+.about-me {
+    text-align: center;
+    padding: 20px;
+}
+
+/* Project sections and container */
+.projects {
+    padding: 20px;
+}
+
+.project-container {
+    display: flex; /* Makes the projects line up horizontally */
+    overflow-x: auto; /* Enables horizontal scrolling */
+    white-space: nowrap; /* Prevents project cards from wrapping to the next line */
+    padding-bottom: 20px; /* Adds some space for the scrollbar */
+    -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
+    scroll-snap-type: x mandatory; /* Makes it snap to each project */
+}
+
+/* Styling for each project card */
+.project-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-right: 20px;
+    min-width: 300px; /* Adjust this to change card width */
+    transform-style: preserve-3d; /* Key for 3D rotation */
+    transition: transform 0.5s ease; /* Smooth transition for rotation */
+    scroll-snap-align: start; /* Aligns the start of the card to the scroll container */
+}
+
+/* Hover effect to show a small rotation */
+.project-card:hover {
+    transform: rotateY(5deg);
+}
+
+/* Optional: Hide scrollbar for a cleaner look */
+.project-container::-webkit-scrollbar {
+    display: none;
+}
+.project-container {
+    -ms-overflow-style: none; /* For Internet Explorer and Edge */
+    scrollbar-width: none; /* For Firefox */
+}
