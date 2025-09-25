@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Odometer Base Converter</title>
     <!-- Link to external stylesheets -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="binaryodometerstyle.css">
     <!-- Tailwind CSS for utility classes -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome for icons -->
@@ -13,6 +13,15 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 text-white">
     <div class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-8">
+                <!-- New portfolio link button added here -->
+        <div class="flex justify-end mb-4">
+            <a href="index.html" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-full text-white bg-gray-700 hover:bg-gray-600 transition-colors duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Portfolio
+            </a>
+        </div>
+        
+        
         <h1 class="text-4xl sm:text-5xl font-extrabold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
             Odometer
         </h1>
@@ -48,9 +57,22 @@
             </div>
             <p id="errorBox" class="text-red-500 mt-4 text-center"></p>
         </div>
+
+
+        <!-- Information Section -->
+        <div class="mt-12 pt-6 border-t border-gray-700">
+            <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 mb-4">
+                Additional Information on this Project:
+            </h2>
+            <p class="text-gray-400 leading-relaxed text-sm sm:text-base">
+                This odometer-style converter was built to demonstrate number base conversion using a clean and modern interface. It uses HTML for structure, CSS for styling, and JavaScript for the conversion logic. The design uses Tailwind CSS to create a seamless, visually appealing theme. The application's core functionality relies on native JavaScript methods like "parseInt()" and "toString()" to perform the base conversions.
+            </p>
+        </div>
+    </div>
+
     </div>
 
     <!-- Link to external script -->
-    <script src="script.js"></script>
+    <script src="binaryodometerscript.js"></script>
 </body>
 </html>

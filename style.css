@@ -34,7 +34,6 @@ h1, h2 {
 .project-container {
     display: flex; /* Makes the projects line up horizontally */
     overflow-x: auto; /* Enables horizontal scrolling */
-    white-space: nowrap; /* Prevents project cards from wrapping to the next line */
     padding-bottom: 20px; /* Adds some space for the scrollbar */
     -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
     scroll-snap-type: x mandatory; /* Makes it snap to each project */
@@ -47,10 +46,10 @@ h1, h2 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
     margin-right: 20px;
-    min-width: 300px; /* Adjust this to change card width */
-    transform-style: preserve-3d; /* Key for 3D rotation */
-    transition: transform 0.5s ease; /* Smooth transition for rotation */
-    scroll-snap-align: start; /* Aligns the start of the card to the scroll container */
+    min-width: 400px; /* Adjust this to change card width */
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+    scroll-snap-align: start;
 }
 
 /* Hover effect to show a small rotation */
@@ -65,4 +64,33 @@ h1, h2 {
 .project-container {
     -ms-overflow-style: none; /* For Internet Explorer and Edge */
     scrollbar-width: none; /* For Firefox */
+}
+
+/* Style for the link wrapping the project card */
+.project-link {
+    text-decoration: none; /* Removes the underline from the link */
+    color: inherit; /* Inherits text color from its parent */
+    display: inline-block; /* Allows the link to contain the block-level project card */
+    margin-right: 20px; /* Maintains the spacing between cards */
+}
+
+/* Optional: Add a hover effect for the link */
+.project-link:hover .project-card {
+    transform: translateY(-5px); /* Lifts the card slightly on hover */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* A more pronounced shadow */
+}
+
+/* Back link on the project detail pages */
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.back-link:hover {
+    background-color: #0056b3;
 }
