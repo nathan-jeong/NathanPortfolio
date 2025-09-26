@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Message Board</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        /* Custom scrollbar styling for the message list */
+        #messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #messages-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* slate-300 */
+            border-radius: 4px;
+        }
+        #messages-container::-webkit-scrollbar-track {
+            background-color: #e2e8f0; /* slate-200 */
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div id="app-container" class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Real-Time Message Board</h1>
+            <p class="text-gray-500 mt-2">Post a message and watch it appear instantly for everyone.</p>
+            <div id="user-info" class="mt-4 text-sm font-mono p-2 bg-indigo-100 text-indigo-800 rounded-lg shadow-inner">
+                Connecting...
+            </div>
+        </header>
+
+        <!-- Message Posting Form -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border border-gray-200">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Send a Message</h2>
+            <form id="message-form" class="flex flex-col sm:flex-row gap-4">
+                <input
+                    type="text"
+                    id="message-input"
+                    placeholder="Type your message here..."
+                    maxlength="200"
+                    class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                    required
+                />
+                <button
+                    type="submit"
+                    id="post-button"
+                    class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 active:bg-indigo-800 disabled:opacity-50"
+                    disabled
+                >
+                    Post Message
+                </button>
+            </form>
+            <p id="error-message" class="text-red-500 mt-2 hidden"></p>
+        </div>
+
+        <!-- Message Display Area -->
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Live Feed</h2>
+            <div id="messages-container" class="space-y-4 max-h-[50vh] overflow-y-auto p-2">
+                <!-- Messages will be injected here -->
+                <p id="loading-indicator" class="text-center text-gray-500">Loading messages...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase logging level to Debug for visibility
+        setLogLevel('Debug');
+
+        // --- Global Variables ---
+        // Accessing Canvas-provided global configuration
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db = null;
+        let auth = null;
+        let currentUserId = null;
+        let isAuthReady = false;
+
+        const messagesContainer = document.getElementById('messages-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const postButton = document.getElementById('post-button');
+        const userInfoDisplay = document.getElementById('user-info');
+        const errorMessageDisplay = document.getElementById('error-message');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        // --- Utility Functions ---
+
+        // Converts Firestore timestamp to a readable local string
+        function formatTimestamp(timestamp) {
+            if (timestamp && timestamp.toDate) {
+                return timestamp.toDate().toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+            return 'Just now';
+        }
+
+        // --- Firebase Initialization and Authentication ---
+
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // 1. Handle Authentication
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userInfoDisplay.textContent = `User ID: ${currentUserId}`;
+                        postButton.disabled = false;
+                        isAuthReady = true;
+                        // Start listening for messages once authenticated
+                        loadMessages();
+                    } else {
+                        // Attempt sign-in using custom token or anonymously
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                userInfoDisplay.textContent = `Error connecting. Check console.`;
+                errorMessageDisplay.textContent = `Initialization failed: ${error.message}`;
+                errorMessageDisplay.classList.remove('hidden');
+            }
+        }
+
+        // --- Firestore Operations ---
+
+        // 1. Post a new message
+        async function postMessage(event) {
+            event.preventDefault();
+            if (!isAuthReady || !currentUserId) {
+                errorMessageDisplay.textContent = "Authentication not ready. Please wait.";
+                errorMessageDisplay.classList.remove('hidden');
+                return;
+            }
+
+            const content = messageInput.value.trim();
+            if (content === "") return;
+
+            postButton.disabled = true;
+
+            const messageData = {
+                userId: currentUserId,
+                content: content,
+                timestamp: serverTimestamp() // Firestore will set the server time
+            };
+
+            const collectionPath = `/artifacts/${appId}/public/data/messages`;
+            
+            try {
+                await addDoc(collection(db, collectionPath), messageData);
+                messageInput.value = ''; // Clear input on success
+                errorMessageDisplay.classList.add('hidden');
+            } catch (error) {
+                console.error("Error writing document: ", error);
+                errorMessageDisplay.textContent = `Post failed: ${error.message}`;
+                errorMessageDisplay.classList.remove('hidden');
+            } finally {
+                postButton.disabled = false;
+            }
+        }
+
+        // 2. Load and listen for messages in real-time
+        function loadMessages() {
+            if (!db || !isAuthReady) return;
+
+            const collectionPath = `/artifacts/${appId}/public/data/messages`;
+            // Create a query to get messages ordered by timestamp
+            // NOTE: Firestore queries often require composite indexes for orderBy fields.
+            // We will rely on in-memory sorting for simplicity, but we still order by timestamp
+            // for the initial data sync. We will use a standard query and sort in JS.
+            const q = query(collection(db, collectionPath));
+
+            // Set up the real-time listener
+            onSnapshot(q, (snapshot) => {
+                loadingIndicator.classList.add('hidden');
+                
+                let messages = [];
+                snapshot.forEach((doc) => {
+                    messages.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Manually sort messages by timestamp in descending order (newest first)
+                messages.sort((a, b) => {
+                    const timeA = a.timestamp?.toDate()?.getTime() || 0;
+                    const timeB = b.timestamp?.toDate()?.getTime() || 0;
+                    return timeB - timeA;
+                });
+
+                // Clear the container and render new messages
+                messagesContainer.innerHTML = '';
+
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = '<p class="text-center text-gray-400 p-4">The board is empty. Be the first to post!</p>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const isCurrentUser = msg.userId === currentUserId;
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `p-4 rounded-lg shadow-sm transition duration-150 ${isCurrentUser ? 'bg-indigo-50 text-indigo-900 border-l-4 border-indigo-500 self-end' : 'bg-white text-gray-800 border-l-4 border-gray-200'}`;
+
+                    messageElement.innerHTML = `
+                        <p class="text-gray-900 break-words">${msg.content}</p>
+                        <div class="mt-1 text-xs ${isCurrentUser ? 'text-indigo-600' : 'text-gray-500'} font-semibold">
+                            ${isCurrentUser ? 'You' : msg.userId.substring(0, 8) + '...'} at ${formatTimestamp(msg.timestamp)}
+                        </div>
+                    `;
+                    messagesContainer.appendChild(messageElement);
+                });
+
+            }, (error) => {
+                console.error("Error listening to collection: ", error);
+                loadingIndicator.classList.add('hidden');
+                errorMessageDisplay.textContent = `Real-time updates failed: ${error.message}`;
+                errorMessageDisplay.classList.remove('hidden');
+            });
+        }
+
+        // --- Event Listeners and Initialization ---
+        messageForm.addEventListener('submit', postMessage);
+
+        window.onload = initializeFirebase;
+
+    </script>
+</body>
+</html>
