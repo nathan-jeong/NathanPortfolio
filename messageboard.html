@@ -4,7 +4,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Message Board</title>
+    <title>Message Board</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
@@ -14,7 +14,6 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fb;
-            
         }
         /* Custom scrollbar styling for the message list */
         #messages-container::-webkit-scrollbar {
@@ -27,6 +26,20 @@
         #messages-container::-webkit-scrollbar-track {
             background-color: #e2e8f0; /* slate-200 */
         }
+
+        /* Modal styling for password prompt and auth prompt */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
     </style>
 </head>
 
@@ -36,8 +49,16 @@
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-800">Real-Time Message Board</h1>
             <p class="text-gray-500 mt-2">Post a message and watch it appear instantly for everyone.</p>
-            <div id="user-info" class="mt-4 text-sm font-mono p-2 bg-indigo-100 text-indigo-800 rounded-lg shadow-inner">
-                Connecting...
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-4">
+                 <div id="user-info" class="text-sm font-mono p-2 bg-indigo-100 text-indigo-800 rounded-lg shadow-inner">
+                    Connecting...
+                </div>
+                <button
+                    id="sign-out-button"
+                    class="px-3 py-2 bg-gray-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150 hidden"
+                >
+                    Sign Out
+                </button>
             </div>
         </header>
 
@@ -46,14 +67,27 @@
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Send a Message</h2>
             <form id="message-form" class="flex flex-col gap-4">
                 
-                <!-- NEW: Name Input Field -->
-                <input
-                    type="text"
-                    id="user-name-input"
-                    placeholder="Your Name (optional)"
-                    maxlength="50"
-                    class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full md:w-1/2"
-                />
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- User Name Input Field (Hidden when signed in) -->
+                    <input
+                        type="text"
+                        id="user-name-input"
+                        placeholder="Your Name (ignored when signed in)"
+                        maxlength="50"
+                        class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full md:w-1/3 hidden"
+                    />
+
+                    <!-- Image Attachment Input Field -->
+                    <div class="flex items-center gap-2 flex-grow">
+                        <label for="image-upload" class="text-sm font-medium text-gray-700 whitespace-nowrap">Attach Image:</label>
+                        <input
+                            type="file"
+                            id="image-upload"
+                            accept="image/*"
+                            class="flex-grow p-1 border border-gray-300 rounded-lg w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                        />
+                    </div>
+                </div>
 
                 <div class="flex flex-col sm:flex-row gap-4">
                     <!-- Existing Message Input -->
@@ -80,7 +114,18 @@
 
         <!-- Message Display Area -->
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Live Feed</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-700">Live Feed</h2>
+                <!-- Delete All Button -->
+                <button
+                    id="delete-all-button"
+                    class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-150 active:bg-red-700 disabled:opacity-50"
+                    disabled
+                >
+                    Delete All Messages
+                </button>
+            </div>
+            
             <div id="messages-container" class="space-y-4 max-h-[50vh] overflow-y-auto p-2">
                 <!-- Messages will be injected here -->
                 <p id="loading-indicator" class="text-center text-gray-500">Loading messages...</p>
@@ -88,20 +133,100 @@
         </div>
     </div>
 
+    <!-- ADMIN Password Prompt Modal (Hidden by default) -->
+    <div id="password-prompt-overlay" class="modal-overlay hidden">
+        <div id="password-prompt" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100">
+            <h3 class="text-xl font-bold mb-4 text-red-600">Administrator Action Required</h3>
+            <p id="prompt-message" class="text-gray-700 mb-4">Enter administrator password to confirm deletion.</p>
+            <input
+                type="password"
+                id="delete-password-input"
+                placeholder="Enter password"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 transition duration-150 mb-4"
+            />
+            <div class="flex justify-end gap-3">
+                <button
+                    id="cancel-delete-button"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    id="confirm-delete-button"
+                    class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition"
+                >
+                    Confirm Deletion
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- END: ADMIN Password Prompt Modal -->
+    
+    <!-- USER Sign-In/Sign-Up Modal (Hidden by default) -->
+    <div id="auth-prompt-overlay" class="modal-overlay hidden">
+        <div id="auth-prompt" class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-600" id="auth-title">Sign In</h3>
+            <p id="auth-message" class="text-red-500 mb-4 hidden"></p>
+            
+            <input
+                type="text"
+                id="auth-name-input"
+                placeholder="Display Name (required for Sign Up)"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 mb-3 hidden"
+            />
+            <input
+                type="email"
+                id="auth-email-input"
+                placeholder="Email"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 mb-3"
+            />
+            <input
+                type="password"
+                id="auth-password-input"
+                placeholder="Password"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 mb-4"
+            />
+            
+            <button
+                id="sign-in-button"
+                class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150"
+            >
+                Sign In
+            </button>
+            
+            <button
+                id="sign-up-button"
+                class="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150 mt-2 hidden"
+            >
+                Create Account
+            </button>
+            
+            <p class="text-center text-sm mt-4">
+                <a href="#" id="switch-to-sign-up" class="text-indigo-600 hover:text-indigo-800 font-medium">Need an account? Sign Up</a>
+                <a href="#" id="switch-to-sign-in" class="text-indigo-600 hover:text-indigo-800 font-medium hidden">Already have an account? Sign In</a>
+            </p>
+        </div>
+    </div>
+    <!-- END: USER Sign-In/Sign-Up Modal -->
+
     <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, addDoc, serverTimestamp, setLogLevel, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // Set Firebase logging level to Debug for visibility
         setLogLevel('Debug');
 
         // --- Global Variables ---
+        const ADMIN_PASSWORD = "admin123"; 
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         let firebaseConfig = {
-            apiKey: "AIzaSyCMCOknNRhflfejnBj2aIyK3k7Hof_3WZI",
+            // Placeholder/default config - will be overwritten by __firebase_config
+            apiKey: "AIzaSyCMCOknNRhflfejnBj2aIyK3k7Hof_3WZI", 
             authDomain: "phhs-message-board-70872.firebaseapp.com",
             projectId: "phhs-message-board-70872",
             storageBucket: "phhs-message-board-70872.firebasestorage.app",
@@ -112,7 +237,6 @@
         
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
-        // Robustly parse the configuration string
         if (typeof __firebase_config === 'string' && __firebase_config.length > 2) {
             try {
                 firebaseConfig = JSON.parse(__firebase_config);
@@ -123,21 +247,45 @@
 
         let db = null;
         let auth = null;
+        let storage = null;
         let currentUserId = null;
         let isAuthReady = false;
 
+        // --- DOM Elements ---
         const messagesContainer = document.getElementById('messages-container');
         const messageForm = document.getElementById('message-form');
-        const userNameInput = document.getElementById('user-name-input'); // NEW: Name input reference
+        const userNameInput = document.getElementById('user-name-input');
+        const imageUploadInput = document.getElementById('image-upload');
         const messageInput = document.getElementById('message-input');
         const postButton = document.getElementById('post-button');
         const userInfoDisplay = document.getElementById('user-info');
         const errorMessageDisplay = document.getElementById('error-message');
         const loadingIndicator = document.getElementById('loading-indicator');
+        const signOutButton = document.getElementById('sign-out-button');
+        
+        // Delete elements
+        const deleteAllButton = document.getElementById('delete-all-button');
+        const passwordPromptOverlay = document.getElementById('password-prompt-overlay');
+        const deletePasswordInput = document.getElementById('delete-password-input');
+        const confirmDeleteButton = document.getElementById('confirm-delete-button');
+        const cancelDeleteButton = document.getElementById('cancel-delete-button');
+        const promptMessage = document.getElementById('prompt-message');
+        
+        // Auth elements
+        const authPromptOverlay = document.getElementById('auth-prompt-overlay');
+        const authTitle = document.getElementById('auth-title');
+        const authEmailInput = document.getElementById('auth-email-input');
+        const authPasswordInput = document.getElementById('auth-password-input');
+        const authNameInput = document.getElementById('auth-name-input');
+        const authMessage = document.getElementById('auth-message');
+        const signInButton = document.getElementById('sign-in-button');
+        const signUpButton = document.getElementById('sign-up-button');
+        const switchToSignInLink = document.getElementById('switch-to-sign-in');
+        const switchToSignUpLink = document.getElementById('switch-to-sign-up');
+
 
         // --- Utility Functions ---
 
-        // Converts Firestore timestamp to a readable local string
         function formatTimestamp(timestamp) {
             if (timestamp && timestamp.toDate) {
                 return timestamp.toDate().toLocaleTimeString('en-US', {
@@ -148,103 +296,319 @@
             }
             return 'Just now';
         }
+        
+        function showCustomAlert(message, isError = false) {
+            errorMessageDisplay.textContent = message;
+            errorMessageDisplay.classList.remove('hidden');
+            if (isError) {
+                 errorMessageDisplay.classList.add('text-red-500');
+            } else {
+                 errorMessageDisplay.classList.remove('text-red-500');
+            }
+            setTimeout(() => {
+                errorMessageDisplay.classList.add('hidden');
+            }, 5000);
+        }
 
-        // --- Firebase Initialization and Authentication ---
+        // --- Auth Modal Control ---
+
+        function showAuthPrompt(isSignUp = false) {
+            authPromptOverlay.classList.remove('hidden');
+            authMessage.classList.add('hidden');
+            authEmailInput.value = '';
+            authPasswordInput.value = '';
+            authNameInput.value = '';
+            
+            if (isSignUp) {
+                authTitle.textContent = 'Create Account';
+                signInButton.classList.add('hidden');
+                signUpButton.classList.remove('hidden');
+                authNameInput.classList.remove('hidden');
+                switchToSignUpLink.classList.add('hidden');
+                switchToSignInLink.classList.remove('hidden');
+            } else {
+                authTitle.textContent = 'Sign In';
+                signInButton.classList.remove('hidden');
+                signUpButton.classList.add('hidden');
+                authNameInput.classList.add('hidden');
+                switchToSignUpLink.classList.remove('hidden');
+                switchToSignInLink.classList.add('hidden');
+            }
+        }
+
+        function hideAuthPrompt() {
+            authPromptOverlay.classList.add('hidden');
+        }
+        
+        function updateAuthMessage(message, isError = false) {
+            authMessage.textContent = message;
+            authMessage.classList.remove('hidden');
+            authMessage.classList.toggle('text-red-500', isError);
+            authMessage.classList.toggle('text-green-500', !isError);
+        }
+
+        // --- Firebase Authentication ---
+
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+                showCustomAlert("You have been signed out.", false);
+            } catch (error) {
+                console.error("Error signing out:", error);
+                showCustomAlert(`Sign out failed: ${error.message}`, true);
+            }
+        }
+
+        async function handleSignUp() {
+            const email = authEmailInput.value.trim();
+            const password = authPasswordInput.value.trim();
+            const displayName = authNameInput.value.trim();
+
+            if (!displayName) {
+                updateAuthMessage("Please enter a Display Name.", true);
+                return;
+            }
+
+            signInButton.disabled = signUpButton.disabled = true;
+            updateAuthMessage("Creating account...", false);
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Set the display name immediately after creation
+                await updateProfile(userCredential.user, { displayName: displayName });
+
+                updateAuthMessage("Account created! Signing in...", false);
+                hideAuthPrompt(); // Handled by onAuthStateChanged
+            } catch (error) {
+                console.error("Sign Up Error: ", error);
+                updateAuthMessage(`Sign Up failed: ${error.message}`, true);
+            } finally {
+                signInButton.disabled = signUpButton.disabled = false;
+            }
+        }
+
+        async function handleSignIn() {
+            const email = authEmailInput.value.trim();
+            const password = authPasswordInput.value.trim();
+
+            signInButton.disabled = signUpButton.disabled = true;
+            updateAuthMessage("Signing in...", false);
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                updateAuthMessage("Sign in successful!", false);
+                hideAuthPrompt(); // Handled by onAuthStateChanged
+            } catch (error) {
+                console.error("Sign In Error: ", error);
+                updateAuthMessage(`Sign In failed: ${error.message}`, true);
+            } finally {
+                signInButton.disabled = signUpButton.disabled = false;
+            }
+        }
+
+
+        // --- Firebase Initialization and Authentication Listener ---
 
         async function initializeFirebase() {
             try {
-                // Check if the configuration object is valid before attempting initialization
                 if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.apiKey) {
                     const message = "Initialization failed: Firebase Configuration (API Key) is missing or invalid.";
                     console.error(message, firebaseConfig);
                     userInfoDisplay.textContent = 'Config Error: Cannot Connect.';
-                    errorMessageDisplay.textContent = message;
-                    errorMessageDisplay.classList.remove('hidden');
+                    showCustomAlert(message, true);
                     return;
                 }
                 
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                storage = getStorage(app);
 
-                // 1. Handle Authentication
+                // 1. Handle Authentication State Changes
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        // Display full User ID for collaborative purposes
-                        userInfoDisplay.textContent = `User ID: ${currentUserId}`;
+                        
+                        // Use display name if available, otherwise email
+                        const displayName = user.displayName || user.email;
+                        userInfoDisplay.textContent = `Signed in as: ${displayName}`;
+                        
                         postButton.disabled = false;
+                        deleteAllButton.disabled = false; 
+                        signOutButton.classList.remove('hidden');
+                        userNameInput.classList.add('hidden'); // Hide manual name input
+
                         isAuthReady = true;
-                        // Start listening for messages once authenticated
                         loadMessages();
+                        hideAuthPrompt();
                     } else {
-                        // Attempt sign-in using custom token or anonymously
+                        currentUserId = null;
+                        userInfoDisplay.textContent = 'Please sign in to post messages.';
+                        postButton.disabled = true;
+                        deleteAllButton.disabled = true;
+                        signOutButton.classList.add('hidden');
+                        userNameInput.classList.remove('hidden'); // Show name input if not signed in (for anonymous testing)
+                        
+                        isAuthReady = true;
+                        
+                        // If a custom token is available, attempt sign-in with it (for canvas environment)
                         if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } catch (e) {
+                                console.warn("Custom token sign-in failed, showing auth prompt:", e);
+                                showAuthPrompt(); // Fallback to prompt if token fails
+                            }
                         } else {
-                            await signInAnonymously(auth);
+                            showAuthPrompt(); // Show sign-in/up modal
                         }
                     }
                 });
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 userInfoDisplay.textContent = `Error connecting. Check console.`;
-                errorMessageDisplay.textContent = `Initialization failed: ${error.message}`;
-                errorMessageDisplay.classList.remove('hidden');
+                showCustomAlert(`Initialization failed: ${error.message}`, true);
             }
         }
 
-        // --- Firestore Operations ---
+        // --- Delete Functionality ---
 
-        // 1. Post a new message
-        async function postMessage(event) {
-            event.preventDefault();
-            if (!isAuthReady || !currentUserId) {
-                errorMessageDisplay.textContent = "Authentication not ready. Please wait.";
-                errorMessageDisplay.classList.remove('hidden');
+        function showDeletePrompt() {
+            passwordPromptOverlay.classList.remove('hidden'); 
+            deletePasswordInput.value = ''; 
+            promptMessage.textContent = "Enter administrator password to confirm deletion.";
+            confirmDeleteButton.disabled = false;
+            cancelDeleteButton.disabled = false;
+        }
+
+        function hideDeletePrompt() {
+            passwordPromptOverlay.classList.add('hidden');
+        }
+
+        async function clearCollection(collectionPath) {
+            if (!db) throw new Error("Database not initialized.");
+            const q = query(collection(db, collectionPath));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return 0; 
+            
+            let count = 0;
+            const deletePromises = [];
+            
+            snapshot.docs.forEach((docRef) => {
+                deletePromises.push(deleteDoc(docRef.ref).then(() => {
+                    count++;
+                }));
+            });
+
+            await Promise.all(deletePromises);
+            return count;
+        }
+
+        async function handleDeleteAll() {
+            const enteredPassword = deletePasswordInput.value;
+
+            if (enteredPassword !== ADMIN_PASSWORD) {
+                promptMessage.textContent = "Incorrect password. Try again.";
+                deletePasswordInput.value = '';
                 return;
             }
 
-            const content = messageInput.value.trim();
-            // NEW: Get user name and default to 'Anonymous' if blank
-            const userName = userNameInput.value.trim() || 'Anonymous'; 
+            promptMessage.textContent = "Deleting all messages...";
+            confirmDeleteButton.disabled = true;
+            cancelDeleteButton.disabled = true;
 
-            if (content === "") return;
+            const collectionPath = `/artifacts/${appId}/public/data/messages`;
+
+            try {
+                const deletedCount = await clearCollection(collectionPath);
+                
+                promptMessage.textContent = `${deletedCount} messages deleted successfully!`;
+                setTimeout(hideDeletePrompt, 3000);
+
+            } catch (error) {
+                promptMessage.textContent = `Deletion failed: ${error.message}`;
+                console.error("Collection deletion error:", error);
+            } finally {
+                confirmDeleteButton.disabled = false;
+                cancelDeleteButton.disabled = false;
+            }
+        }
+
+        // --- Message Posting ---
+
+        async function postMessage(event) {
+            event.preventDefault();
+            if (!isAuthReady || !currentUserId) {
+                showCustomAlert("You must be signed in to post messages.", true);
+                return;
+            }
+            
+            // Get user name from auth state
+            const user = auth.currentUser;
+            const userName = user?.displayName || user?.email || user?.uid.substring(0, 8);
+            
+            const content = messageInput.value.trim();
+            const file = imageUploadInput.files[0];
+
+            if (content === "" && !file) {
+                showCustomAlert("Please enter a message or select an image.", true);
+                return;
+            }
 
             postButton.disabled = true;
+            postButton.textContent = file ? "Uploading..." : "Posting...";
 
+            let imageUrl = null;
+
+            // STEP 1: Handle Image Upload
+            if (file) {
+                try {
+                    const storagePath = `messages/${currentUserId}/${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, storagePath);
+                    
+                    const uploadResult = await uploadBytes(storageRef, file);
+                    imageUrl = await getDownloadURL(uploadResult.ref);
+                } catch (error) {
+                    console.error("Error uploading file: ", error);
+                    showCustomAlert(`Image upload failed: ${error.message}`, true);
+                    postButton.disabled = false;
+                    postButton.textContent = "Post Message";
+                    return;
+                }
+            }
+
+            // STEP 2: Write Firestore Document
             const messageData = {
                 userId: currentUserId,
-                userName: userName, // NEW: Include user name in the data
+                userName: userName, // Use the authenticated user's name
                 content: content,
-                timestamp: serverTimestamp() // Firestore will set the server time
+                imageUrl: imageUrl,
+                timestamp: serverTimestamp() 
             };
 
             const collectionPath = `/artifacts/${appId}/public/data/messages`;
             
             try {
                 await addDoc(collection(db, collectionPath), messageData);
-                messageInput.value = ''; // Clear message input on success
-                // userNameInput.value = ''; // OPTIONAL: uncomment to clear name after every post
-                errorMessageDisplay.classList.add('hidden');
+                messageInput.value = '';
+                imageUploadInput.value = '';
             } catch (error) {
                 console.error("Error writing document: ", error);
-                errorMessageDisplay.textContent = `Post failed: ${error.message}`;
-                errorMessageDisplay.classList.remove('hidden');
+                showCustomAlert(`Post failed: ${error.message}`, true);
             } finally {
                 postButton.disabled = false;
+                postButton.textContent = "Post Message";
             }
         }
 
-        // 2. Load and listen for messages in real-time
+        // --- Load and Listen for Messages ---
         function loadMessages() {
             if (!db || !isAuthReady) return;
 
             const collectionPath = `/artifacts/${appId}/public/data/messages`;
-            // Create a query to get messages
             const q = query(collection(db, collectionPath));
 
-            // Set up the real-time listener
             onSnapshot(q, (snapshot) => {
                 loadingIndicator.classList.add('hidden');
                 
@@ -260,7 +624,6 @@
                     return timeB - timeA;
                 });
 
-                // Clear the container and render new messages
                 messagesContainer.innerHTML = '';
 
                 if (messages.length === 0) {
@@ -272,13 +635,22 @@
                     const isCurrentUser = msg.userId === currentUserId;
                     const messageElement = document.createElement('div');
                     
-                    // Determine display name: Use saved name, or default to 'You' / truncated ID.
                     const displayName = msg.userName || (isCurrentUser ? 'You' : msg.userId.substring(0, 8) + '...');
 
+                    const imageHtml = msg.imageUrl 
+                        ? `<img 
+                            src="${msg.imageUrl}" 
+                            alt="Attached image" 
+                            class="rounded-lg shadow-md max-w-full h-auto mt-2 mb-2 border border-gray-100 object-cover" 
+                            style="max-height: 250px; cursor: pointer;"
+                            onclick="window.open('${msg.imageUrl}', '_blank')" 
+                        />`
+                        : '';
 
-                    messageElement.className = `p-4 rounded-lg shadow-sm transition duration-150 ${isCurrentUser ? 'bg-indigo-50 text-indigo-900 border-l-4 border-indigo-500 self-end' : 'bg-white text-gray-800 border-l-4 border-gray-200'}`;
+                    messageElement.className = `p-4 rounded-lg shadow-md transition duration-150 ${isCurrentUser ? 'bg-indigo-50 text-indigo-900 border-l-4 border-indigo-500 self-end' : 'bg-white text-gray-800 border-l-4 border-gray-200'}`;
 
                     messageElement.innerHTML = `
+                        ${imageHtml}
                         <p class="text-gray-900 break-words">${msg.content}</p>
                         <div class="mt-1 text-xs ${isCurrentUser ? 'text-indigo-600' : 'text-gray-500'} font-semibold">
                             ${displayName} at ${formatTimestamp(msg.timestamp)}
@@ -287,19 +659,39 @@
                     messagesContainer.appendChild(messageElement);
                 });
 
-                // Scroll to the top to show the newest messages first
                 messagesContainer.scrollTop = 0;
 
             }, (error) => {
                 console.error("Error listening to collection: ", error);
                 loadingIndicator.classList.add('hidden');
-                errorMessageDisplay.textContent = `Real-time updates failed: ${error.message}`;
-                errorMessageDisplay.classList.remove('hidden');
+                showCustomAlert(`Real-time updates failed: ${error.message}`, true);
             });
         }
 
         // --- Event Listeners and Initialization ---
         messageForm.addEventListener('submit', postMessage);
+        signOutButton.addEventListener('click', handleSignOut);
+        signInButton.addEventListener('click', handleSignIn);
+        signUpButton.addEventListener('click', handleSignUp);
+        
+        switchToSignUpLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuthPrompt(true);
+        });
+        switchToSignInLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuthPrompt(false);
+        });
+
+        if (deleteAllButton) {
+            deleteAllButton.addEventListener('click', showDeletePrompt);
+        }
+        if (confirmDeleteButton) {
+            confirmDeleteButton.addEventListener('click', handleDeleteAll);
+        }
+        if (cancelDeleteButton) {
+            cancelDeleteButton.addEventListener('click', hideDeletePrompt);
+        }
 
         window.onload = initializeFirebase;
 
